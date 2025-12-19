@@ -37,18 +37,34 @@ jobs:
       run: |
         echo "FROM eclipse-temurin:17-jre
         COPY target/*.jar app.jar
-        EXPOSE 8080
+        EXPOSE 7777
         ENTRYPOINT [\"java\", \"-jar\", \"/app.jar\"]" > Dockerfile
         docker build -t jenkins-test-app:${{ github.sha }} .
 
     - name: Run application
       run: |
-        docker run -d -p 8080:8080 --name jenkins-test-app jenkins-test-app:${{ github.sha }}
-        sleep 30
+        docker run -d -p 7777:7777 --name jenkins-test-app jenkins-test-app:${{ github.sha }}
+
+    - name: Wait for application to start
+      run: |
+        echo "Waiting for application to start..."
+        for i in {1..60}; do
+          if curl -f http://localhost:7777/health > /dev/null 2>&1; then
+            echo "Application is ready!"
+            break
+          fi
+          echo "Attempt $i/60 - waiting 5 seconds..."
+          sleep 5
+        done
 
     - name: Health check
       run: |
-        curl -f http://localhost:8080/health || exit 1
+        echo "Final health check..."
+        curl -f http://localhost:7777/health || {
+          echo "Health check failed. Checking container logs:"
+          docker logs jenkins-test-app
+          exit 1
+        }
 
     - name: Stop application
       if: always()
