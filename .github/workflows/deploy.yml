@@ -7,6 +7,7 @@ on:
       - completed
     branches: [ main ]
   workflow_dispatch:
+  workflow_call:
 
 jobs:
   deploy:
@@ -49,7 +50,7 @@ jobs:
       run: |
         echo "Waiting for application to start..."
         for i in {1..60}; do
-          if curl -f http://localhost:7777/health > /dev/null 2>&1; then
+          if curl -f http://localhost:7777/actuator/health > /dev/null 2>&1; then
             echo "Application is ready!"
             break
           fi
@@ -60,7 +61,7 @@ jobs:
     - name: Health check
       run: |
         echo "Final health check..."
-        curl -f http://localhost:7777/health || {
+        curl -f http://localhost:7777/actuator/health || {
           echo "Health check failed. Checking container logs:"
           docker logs jenkins-test-app
           exit 1
