@@ -95,30 +95,24 @@ jobs:
     if: always()
     
     steps:
-    - name: Download test results
-      uses: actions/download-artifact@v4
-      with:
-        name: test-results
-        path: test-results/
-
-    - name: Download integration test results
-      uses: actions/download-artifact@v4
-      with:
-        name: integration-test-results
-        path: integration-results/
-
     - name: Test Summary
       run: |
         echo "## 📊 Test Summary" >> $GITHUB_STEP_SUMMARY
         echo "### Unit Tests" >> $GITHUB_STEP_SUMMARY
-        if [ -d "test-results" ]; then
-          echo "✅ Unit tests completed" >> $GITHUB_STEP_SUMMARY
+        if [ "${{ needs.unit-tests.result }}" == "success" ]; then
+          echo "✅ Unit tests completed successfully" >> $GITHUB_STEP_SUMMARY
         else
           echo "❌ Unit tests failed" >> $GITHUB_STEP_SUMMARY
         fi
         echo "### Integration Tests" >> $GITHUB_STEP_SUMMARY
-        if [ -d "integration-results" ]; then
-          echo "✅ Integration tests completed" >> $GITHUB_STEP_SUMMARY
+        if [ "${{ needs.integration-tests.result }}" == "success" ]; then
+          echo "✅ Integration tests completed successfully" >> $GITHUB_STEP_SUMMARY
         else
           echo "❌ Integration tests failed" >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "### Overall Status" >> $GITHUB_STEP_SUMMARY
+        if [ "${{ needs.unit-tests.result }}" == "success" ] && [ "${{ needs.integration-tests.result }}" == "success" ]; then
+          echo "🎉 All tests passed!" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "⚠️ Some tests failed" >> $GITHUB_STEP_SUMMARY
         fi
