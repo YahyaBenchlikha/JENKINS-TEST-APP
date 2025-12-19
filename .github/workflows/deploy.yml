@@ -23,11 +23,15 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Download build artifacts
-      uses: actions/download-artifact@v4
+    - name: Cache Maven dependencies
+      uses: actions/cache@v3
       with:
-        name: jar-artifact
-        path: target/
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+
+    - name: Build application
+      run: mvn clean package -DskipTests
 
     - name: Build Docker image
       run: |
