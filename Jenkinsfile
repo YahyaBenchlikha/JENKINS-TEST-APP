@@ -14,12 +14,12 @@ pipeline {
         }
         stage('Build') {
             steps {
-                sh 'mvn clean package -DskipTests'
+                bat 'mvn clean package -DskipTests'
             }
         }
         stage('Test') {
             steps {
-                sh 'mvn test'
+                bat 'mvn test'
             }
             post {
                 always {
@@ -29,12 +29,12 @@ pipeline {
         }
         stage('Docker Build') {
             steps {
-                sh 'docker build -t $IMAGE_NAME .'
+                bat 'docker build -t %IMAGE_NAME% .'
             }
         }
         stage('Deploy Local Docker') {
             steps {
-                sh '''
+                bat '''
                     docker stop $CONTAINER_NAME || true
                     docker rm $CONTAINER_NAME || true
                     docker run -d --name $CONTAINER_NAME -p $HOST_PORT:$CONTAINER_PORT $IMAGE_NAME
