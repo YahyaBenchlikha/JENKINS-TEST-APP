@@ -1,28 +1,38 @@
 pipeline {
     agent any
+
     tools {
-        maven 'Maven3' // Le nom que vous avez donné dans la config
+        // Assurez-vous que 'Maven3' est bien le nom configuré dans 'Manage Jenkins' -> 'Tools'
+        maven 'Maven3'
     }
+
     environment {
+        // Variables TP3 (Docker)
         IMAGE_NAME = "tp3-java-app:latest"
         CONTAINER_NAME = "tp3-java-container"
         HOST_PORT = "8081"
-        CONTAINER_PORT = "9090"
+        CONTAINER_PORT = "8080" // Port défini dans votre Dockerfile (EXPOSE 8080)
+        
+        // Variables TP4 (SonarQube)
+        SONAR_PROJECT_KEY = "tp4-java-project"
     }
+
     stages {
         stage('Checkout') {
             steps {
                 git branch: 'main', url: 'https://github.com/YahyaBenchlikha/JENKINS-TEST-APP.git'
             }
         }
+
         stage('Build') {
             steps {
-                bat 'mvn clean package -DskipTests'
+                bat 'mvn -B clean package -DskipTests'
             }
         }
+
         stage('Test') {
             steps {
-                bat 'mvn test'
+                bat 'mvn -B test'
             }
             post {
                 always {
@@ -30,11 +40,31 @@ pipeline {
                 }
             }
         }
-        stage('Docker Build') {
+
+        stage('SonarQube Analysis') {
             steps {
-                bat 'docker build -t %IMAGE_NAME% .'
+                // 'SonarQube' doit être le nom déclaré dans Jenkins -> System -> SonarQube servers
+                withSonarQubeEnv('SonarQube') {
+                    bat "mvn -B sonar:sonar -Dsonar.projectKey=${SONAR_PROJECT_KEY}"
+                }
             }
         }
+
+        stage('Quality Gate') {
+            steps {
+                // Attend le verdict de SonarQube avant de continuer vers le déploiement
+                timeout(time: 2, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
+
+        stage('Docker Build') {
+            steps {
+                bat "docker build -t %IMAGE_NAME% ."
+            }
+        }
+
         stage('Deploy (Local Docker)') {
             steps {
                 bat """
@@ -45,18 +75,20 @@ pipeline {
                 echo Suppression du conteneur s'il existe...
                 docker rm ${CONTAINER_NAME} 2>nul || ver >nul
                 
-                echo Lancement du nouveau conteneur sur le port ${HOST_PORT}...
+                echo Lancement du conteneur sur http://localhost:${HOST_PORT}
                 docker run -d --name ${CONTAINER_NAME} -p ${HOST_PORT}:${CONTAINER_PORT} ${IMAGE_NAME}
                 """
             }
-}
+        }
     }
+
     post {
         success {
-            echo "✅ Déploiement local terminé"
+            echo "✅ TP4 réussi : Qualité OK, application déployée via Docker"
         }
         failure {
-            echo "❌ Erreur dans le pipeline"
+            echo "❌ Pipeline échoué : vérifiez les tests ou le Quality Gate SonarQube"
         }
     }
 }
+//jacoco 
