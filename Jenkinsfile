@@ -1,5 +1,8 @@
 pipeline {
     agent any
+    tools {
+        maven 'Maven3' // Le nom que vous avez donné dans la config
+    }
     environment {
         IMAGE_NAME = "tp3-java-app:latest"
         CONTAINER_NAME = "tp3-java-container"
