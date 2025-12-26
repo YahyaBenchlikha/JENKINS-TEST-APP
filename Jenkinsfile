@@ -35,15 +35,21 @@ pipeline {
                 bat 'docker build -t %IMAGE_NAME% .'
             }
         }
-        stage('Deploy Local Docker') {
+        stage('Deploy (Local Docker)') {
             steps {
-                bat '''
-                    docker stop $CONTAINER_NAME || true
-                    docker rm $CONTAINER_NAME || true
-                    docker run -d --name $CONTAINER_NAME -p $HOST_PORT:$CONTAINER_PORT $IMAGE_NAME
-                '''
+                bat """
+                @echo off
+                echo Arret du conteneur s'il existe...
+                docker stop ${CONTAINER_NAME} 2>nul || ver >nul
+                
+                echo Suppression du conteneur s'il existe...
+                docker rm ${CONTAINER_NAME} 2>nul || ver >nul
+                
+                echo Lancement du nouveau conteneur sur le port ${HOST_PORT}...
+                docker run -d --name ${CONTAINER_NAME} -p ${HOST_PORT}:${CONTAINER_PORT} ${IMAGE_NAME}
+                """
             }
-        }
+}
     }
     post {
         success {
