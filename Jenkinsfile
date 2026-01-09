@@ -7,7 +7,6 @@ pipeline {
     }
 
     environment {
-        // Variables TP3 (Docker)
         IMAGE_NAME = "tp3-java-app:latest"
         CONTAINER_NAME = "tp3-java-container"
         HOST_PORT = "8081"
@@ -37,18 +36,28 @@ pipeline {
             post {
                 always {
                     junit '**/target/surefire-reports/*.xml'
+                    jacoco()
                 }
             }
         }
-
-        stage('SonarQube Analysis') {
+        stage('Test Credentials') {
             steps {
-                // 'SonarQube' doit être le nom déclaré dans Jenkins -> System -> SonarQube servers
-                withSonarQubeEnv('SonarQube') {
-                    bat "mvn -B sonar:sonar -Dsonar.projectKey=${SONAR_PROJECT_KEY}"
+                
+                withCredentials([string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')]) {
+                    bat 'echo Le token est récupéré mais Jenkins va masquer sa valeur : %GITHUB_TOKEN%'
                 }
             }
         }
+        stage('SonarQube Analysis') {
+                steps {
+                    withSonarQubeEnv('SonarQube') {
+                        bat """
+                            mvn -B org.sonarsource.scanner.maven:sonar-maven-plugin:3.9.1.2184:sonar ^
+                            -Dsonar.projectKey=${SONAR_PROJECT_KEY}
+                        """
+                    }
+                }
+            }
 
         stage('Quality Gate') {
             steps {
